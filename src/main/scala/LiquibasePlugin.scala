@@ -138,4 +138,25 @@ object LiquibasePlugin extends Plugin {
 
     liquibaseDropAll <<= liquibase map { _.dropAll() }
   )
+
+  def herokuLiquibaseSettings = Option(System.getenv("DATABASE_URL")) match {
+    case Some(databaseUrl) =>
+      val r = """postgres:\/\/(.*):(.*)@(.*)\/(.*)""".r
+      val r(username, password, host, database) = databaseUrl
+      Seq(
+        liquibaseUsername := username,
+        liquibasePassword := password,
+        liquibaseDriver   := "org.postgresql.Driver",
+        liquibaseUrl      := "jdbc:postgresql://%s/%s".format(host, database)
+      )
+    case None =>
+      // DATABASE_URL is not set when deploying to heroku, but sbt requires these to be set
+      println("Warning: DATABASE_URL not set")
+      Seq(
+        liquibaseUsername := "undefined",
+        liquibasePassword := "undefined",
+        liquibaseDriver   := "undefined",
+        liquibaseUrl      := "undefined"
+      )
+  }
 }
